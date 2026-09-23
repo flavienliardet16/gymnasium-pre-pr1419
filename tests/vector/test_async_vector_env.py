@@ -434,3 +434,38 @@ def test_async_vector_subenv_error():
         caught_warnings[4].message.args[0]
         == "\x1b[31mERROR: Raising the last exception back to the main process.\x1b[0m"
     )
+
+
+@pytest.mark.parametrize("shared_memory", [True, False])
+def test_step_async_invalid_action_count_fewer(shared_memory):
+    """Test that step_async raises ValueError when fewer actions than num_envs are provided."""
+    env_fns = [make_env("CartPole-v1", i) for i in range(4)]
+    env = AsyncVectorEnv(env_fns, shared_memory=shared_memory)
+    env.reset()
+
+    # Provide only 2 actions for 4 environments
+    with pytest.raises(
+        ValueError,
+        match=re.escape("Expected 4 actions (one per environment), got 2."),
+    ):
+        env.step(env.action_space.sample()[:2])
+
+    env.close()
+
+
+@pytest.mark.parametrize("shared_memory", [True, False])
+def test_step_async_invalid_action_count_more(shared_memory):
+    """Test that step_async raises ValueError when more actions than num_envs are provided."""
+    env_fns = [make_env("CartPole-v1", i) for i in range(4)]
+    env = AsyncVectorEnv(env_fns, shared_memory=shared_memory)
+    env.reset()
+
+    # Provide 6 actions for 4 environments
+    actions = np.concatenate([env.action_space.sample(), env.action_space.sample()[:2]])
+    with pytest.raises(
+        ValueError,
+        match=re.escape("Expected 4 actions (one per environment), got 6."),
+    ):
+        env.step(actions)
+
+    env.close()
