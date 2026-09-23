@@ -409,6 +409,12 @@ class AsyncVectorEnv(VectorEnv):
                 str(self._state.value),
             )
 
+        if len(actions) != self.num_envs:
+            raise ValueError(
+                f"Expected len(actions) to match num_envs ({self.num_envs}), "
+                f"but got {len(actions)}."
+            )
+
         iter_actions = iterate(self.action_space, actions)
         for pipe, action in zip(self.parent_pipes, iter_actions):
             pipe.send(("step", action))
