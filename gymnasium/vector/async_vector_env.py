@@ -401,6 +401,7 @@ class AsyncVectorEnv(VectorEnv):
                 method (e.g. :meth:`reset_async`). This can be caused by two consecutive
                 calls to :meth:`step_async`, with no call to :meth:`step_wait` in
                 between.
+            ValueError: If the number of actions does not match the number of environments.
         """
         self._assert_is_running()
         if self._state != AsyncState.DEFAULT:
@@ -409,7 +410,12 @@ class AsyncVectorEnv(VectorEnv):
                 str(self._state.value),
             )
 
-        iter_actions = iterate(self.action_space, actions)
+        iter_actions = list(iterate(self.action_space, actions))
+        if len(iter_actions) != self.num_envs:
+            raise ValueError(
+                f"Expected {self.num_envs} actions (one per environment), got {len(iter_actions)}."
+            )
+
         for pipe, action in zip(self.parent_pipes, iter_actions):
             pipe.send(("step", action))
         self._state = AsyncState.WAITING_STEP
